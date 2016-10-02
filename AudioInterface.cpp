@@ -11,6 +11,11 @@ AudioInterface::AudioInterface(unsigned int _sampleRate, unsigned int _framesPer
 
     framesPerBuffer = _framesPerBuffer;
     sampleRate = _sampleRate;
+    outputParameters.device = Pa_GetDefaultOutputDevice();
+    if (outputParameters.device == paNoDevice) {
+        std::cerr << "Error: No default device";
+        handleError();
+    }
     outputParameters.channelCount = 2;
     outputParameters.sampleFormat = paFloat32;
     outputParameters.suggestedLatency = Pa_GetDeviceInfo( outputParameters.device )->defaultLowOutputLatency;
@@ -19,6 +24,10 @@ AudioInterface::AudioInterface(unsigned int _sampleRate, unsigned int _framesPer
     generateCallbackSet = false;
     generateUserData = 0;
     currentTime = 0;
+}
+
+AudioInterface::~AudioInterface() {
+    closeStream();
 }
 
 void
@@ -49,6 +58,11 @@ AudioInterface::handleError() {
     exit(1);
 }
 
+double
+AudioInterface::getCurrentTime() {
+    return currentTime;
+}
+
 int
 AudioInterface::PaCallback(const void *inputBuffer,
                            void *outputBuffer,
@@ -59,12 +73,11 @@ AudioInterface::PaCallback(const void *inputBuffer,
     AudioInterface *iface = (AudioInterface *) userData;
     float *out = (float*) outputBuffer;
     float *outMono = new float[framesPerBuffer]();
-
-    iface->currentTime += (float)framesPerBuffer / (float)iface->sampleRate;
+    double dt = 1.0/(double)iface->sampleRate;
 
     if (iface->generateCallbackSet) {
         (*iface->generateCallback)(iface->currentTime,
-                                   1.0/(float)iface->sampleRate,
+                                   dt,
                                    framesPerBuffer,
                                    outMono,
                                    iface->generateUserData);
@@ -74,6 +87,7 @@ AudioInterface::PaCallback(const void *inputBuffer,
         out[indSample*2] = outMono[indSample];
         out[indSample*2 + 1] = outMono[indSample];
     }
+    iface->currentTime += dt*(double)framesPerBuffer;
 
     delete [] outMono;
     return paContinue;

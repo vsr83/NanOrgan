@@ -1,24 +1,25 @@
 #include "ADSREnvelope.h"
+#include <iostream>
 
 ADSREnvelope::ADSREnvelope() {
-    attackTime       = 0.02;
-    decayTime        = 0.02;
-    releaseTime      = 0.05;
+    attackTime       = 0.075;
+    decayTime        = 0.05;
+    releaseTime      = 0.02;
     peakAmplitude    = 1.0;
     sustainAmplitude = 0.3;
 
     triggerTime = 0.0;
-    releaseTime = 0.0;
+    releasedTime = 0.0;
     amplitudeAtRelease = 0.0;
 
     state = STATE_OFF;
 }
 
-ADSREnvelope::ADSREnvelope(float _attackTime,
-                           float _decayTime,
-                           float _releaseTime,
-                           float _peakAmplitude,
-                           float _sustainAmplitude) {
+ADSREnvelope::ADSREnvelope(double _attackTime,
+                           double _decayTime,
+                           double _releaseTime,
+                           double _peakAmplitude,
+                           double _sustainAmplitude) {
     attackTime = _attackTime;
     decayTime = _decayTime;
     releaseTime = _releaseTime;
@@ -33,26 +34,33 @@ ADSREnvelope::ADSREnvelope(float _attackTime,
 }
 
 void
-ADSREnvelope::trigger(float time) {
+ADSREnvelope::trigger(double time) {
     state = STATE_ATTACK;
     triggerTime = time;
 }
 
 void
-ADSREnvelope::release(float time) {
+ADSREnvelope::release(double time) {
     amplitudeAtRelease = eval(time);
+    releasedTime = time;
     state = STATE_RELEASE;
+
 }
 
-float
-ADSREnvelope::eval(float t) {
+unsigned int
+ADSREnvelope::getState() {
+    return state;
+}
+
+double
+ADSREnvelope::eval(double t) {
     switch (state) {
     case STATE_OFF:
         return 0.0;
         break;
     case STATE_ATTACK:
     {
-        float stateTime = t - triggerTime;
+        double stateTime = t - triggerTime;
         if (stateTime <= attackTime) {
             return peakAmplitude * stateTime / attackTime;
         } else {
@@ -63,7 +71,7 @@ ADSREnvelope::eval(float t) {
     }
     case STATE_DECAY:
     {
-        float stateTime = t - triggerTime - attackTime;
+        double stateTime = t - triggerTime - attackTime;
         if (stateTime < decayTime)
         {
             return peakAmplitude - (peakAmplitude - sustainAmplitude) * stateTime/decayTime;
@@ -74,9 +82,10 @@ ADSREnvelope::eval(float t) {
         break;
     case STATE_RELEASE:
     {
-        float stateTime = t - releasedTime;
+        double stateTime = t - releasedTime;
+
         if (stateTime < releaseTime) {
-            return sustainAmplitude * (1 - stateTime/releaseTime);
+            return amplitudeAtRelease * (1 - stateTime/releaseTime);
         } else {
             state = STATE_OFF;
             return 0.0;
@@ -84,6 +93,7 @@ ADSREnvelope::eval(float t) {
         break;
     }
     }
+    std::cout << "ERROR" << std::endl;
 }
 
 bool

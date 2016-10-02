@@ -5,26 +5,27 @@ class ADSREnvelope
 {
 public:
     ADSREnvelope();
-    ADSREnvelope(float _attackTime,
-                 float _decayTime,
-                 float _releaseTime,
-                 float _peakAmplitude,
-                 float _sustainAmplitude);
+    ADSREnvelope(double _attackTime,
+                 double _decayTime,
+                 double _releaseTime,
+                 double _peakAmplitude,
+                 double _sustainAmplitude);
 
     enum {STATE_OFF, STATE_ATTACK, STATE_DECAY, STATE_RELEASE};
 
-    void trigger(float t);
-    void release(float t);
-    float eval(float t);
+    void trigger(double t);
+    void release(double t);
+    double eval(double t);
     bool isFinished();
+    unsigned int getState();
 
-    float attackTime, decayTime, releaseTime;
-    float peakAmplitude, sustainAmplitude;
+    double attackTime, decayTime, releaseTime;
+    double peakAmplitude, sustainAmplitude;
 
-    float triggerTime, releasedTime;
+    double triggerTime, releasedTime;
 private:
     unsigned int state;
-    float amplitudeAtRelease;
+    double amplitudeAtRelease;
 };
 
 #endif // ADSRENVELOPE_H

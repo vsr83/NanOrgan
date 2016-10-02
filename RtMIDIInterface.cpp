@@ -46,11 +46,12 @@ RtMIDIInterface::RtCallback(double deltaTime,
     RtMIDIInterface *iface = (RtMIDIInterface *) userData;
 
     unsigned int nBytes = message->size();
+    /*
     for ( unsigned int i=0; i<nBytes; i++ )
         std::cout << "Byte " << i << " = " << (int)message->at(i) << ", ";
     if ( nBytes > 0 )
         std::cout << "stamp = " << deltaTime << std::endl;
-
+*/
     if (nBytes >= 3)
     {
         unsigned char func = message->at(0),

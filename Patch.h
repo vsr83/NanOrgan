@@ -11,17 +11,18 @@ public:
     std::vector<float> timbre;
     ADSREnvelope env;
 
-    float eval  (float t);
-    void trigger(unsigned char note, unsigned char vel, float t);
-    void release(float t);
+    float eval  (double t);
+    void trigger(unsigned char note, unsigned char vel, double t);
+    void release(double t);
+    bool isFinished();
 
     float fmodAmpl, fmodFreq;
     bool fmodEnabled;
-    float delayTime, delayCoeff;
+    double delayTime, delayCoeff;
     bool delayEnabled;
 
     unsigned char note, vel;
-    float freq, velf;
+    double freq, velf;
 };
 
 #endif // PATCH_H

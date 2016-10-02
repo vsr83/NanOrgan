@@ -3,9 +3,9 @@
 
 #include <portaudio.h>
 
-typedef void (*generateCallbackType)(float t,
-                                     float dt,
-                                     unsigned numsamples,
+typedef void (*generateCallbackType)(double t,
+                                     double dt,
+                                     unsigned int numSamples,
                                      float *output,
                                      void *userData);
 
@@ -19,6 +19,8 @@ public:
                              void *userData);
     void openStream();
     void closeStream();
+
+    double getCurrentTime();
 private:
     void handleError();
 
@@ -40,7 +42,7 @@ private:
     generateCallbackType generateCallback;
     void *generateUserData;
 
-    float currentTime;
+    double currentTime;
 };
 
 #endif // AUDIOINTERFACE_H
