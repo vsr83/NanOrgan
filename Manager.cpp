@@ -7,15 +7,51 @@
 #include <list>
 #include <vector>
 #include <iostream>
+#include <math.h>
 
 Manager::Manager() {
     for (unsigned int channel = 0; channel < 16; channel++) {
         std::list<Patch> patchlist;
         Patch patch;
 
+        if (channel == 1) {
+            patch.timbre.clear();
+            patch.timbre.push_back(1.0);
+            patch.timbre.push_back(0.0);
+            patch.timbre.push_back(0.0);
+            patch.timbre.push_back(0.6);
+            patch.timbre.push_back(0.0);
+            patch.timbre.push_back(0.0);
+        }
+        if (channel == 2) {
+            patch.timbre.clear();
+            patch.timbre.push_back(1.0);
+            patch.timbre.push_back(0.6);
+            patch.timbre.push_back(0.0);
+            patch.timbre.push_back(0.6);
+            patch.timbre.push_back(0.0);
+            patch.timbre.push_back(0.0);
+        }
+        if (channel == 3) {
+            patch.timbre.clear();
+            patch.timbre.push_back(1.0); // 1
+            patch.timbre.push_back(0.5); // 2
+            patch.timbre.push_back(0.0); // 3
+            patch.timbre.push_back(0.6); // 4
+            patch.timbre.push_back(0.0); // 5
+            patch.timbre.push_back(0.0); // 6
+            patch.timbre.push_back(0.0); // 7
+            patch.timbre.push_back(1.0); // 8
+        }
+
         activeSounds.push_back(patchlist);
         defaultPatches.push_back(patch);
     }
+
+    delayBufferSize = 44100*2;
+    delayBuffer = new float[delayBufferSize];
+    for (unsigned int ind = 0; ind < delayBufferSize; ind++)
+        delayBuffer[ind] = 0.0;
 
     std::cout << "Initialization of Audio Interface" << std::endl;
     audioInterface = new AudioInterface(44100, 64);
@@ -35,6 +71,9 @@ Manager::~Manager() {
     delete audioInterface;
     MIDIInterface = 0;
     audioInterface = 0;
+
+    delete [] delayBuffer;
+    delayBuffer = 0;
 }
 
 double
@@ -46,7 +85,9 @@ void
 Manager::generateCallback(double t, double dt, unsigned int numSamples, float *output, void *userData) {
     Manager *manager = (Manager*) userData;
 
+    float *outputTmp = new float[numSamples];
     for (unsigned int sample = 0; sample < numSamples; sample++) {
+        outputTmp[sample] = 0.0;
         output[sample] = 0.0;
     }
 
@@ -58,12 +99,32 @@ Manager::generateCallback(double t, double dt, unsigned int numSamples, float *o
                 manager->activeSounds[channel].erase(it++);
             } else {
                 for (unsigned int sample = 0; sample < numSamples; sample++) {
-                    output[sample] += (*it).eval(manager->getCurrentTime() + dt*sample);
+                    outputTmp[sample] += (*it).eval(manager->getCurrentTime() + dt*sample);
                 }
                 ++it;
             }
         }
     }
+
+    for (unsigned int sample = 0; sample < numSamples; sample++)
+    {
+ //       std::cout << manager->delayBufferIndex << std::endl;
+        manager->delayBuffer[manager->delayBufferIndex] = outputTmp[sample];
+        manager->delayBufferIndex = (manager->delayBufferIndex + 1) % manager->delayBufferSize;
+    }
+
+    for (unsigned int sample = 0; sample < numSamples; sample++)
+    {
+        output[sample] = outputTmp[sample];
+
+        for (unsigned int delayfac = 1; delayfac < 12; delayfac++) {
+            unsigned int delayIndex = (manager->delayBufferIndex - numSamples + sample - delayfac*4000 + manager->delayBufferSize) % manager->delayBufferSize;
+            output[sample] += powf(0.7, delayfac)*manager->delayBuffer[delayIndex];
+            //std::cout << delayIndex << " " << manager->delayBuffer[delayIndex]<< std::endl;
+        }
+    }
+
+    delete [] outputTmp;
 }
 
 void

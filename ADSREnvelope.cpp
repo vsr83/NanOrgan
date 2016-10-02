@@ -2,11 +2,11 @@
 #include <iostream>
 
 ADSREnvelope::ADSREnvelope() {
-    attackTime       = 0.075;
-    decayTime        = 0.05;
-    releaseTime      = 0.02;
+    attackTime       = 0.03;
+    decayTime        = 0.100;
+    releaseTime      = 0.1;
     peakAmplitude    = 1.0;
-    sustainAmplitude = 0.3;
+    sustainAmplitude = 0.5;
 
     triggerTime = 0.0;
     releasedTime = 0.0;

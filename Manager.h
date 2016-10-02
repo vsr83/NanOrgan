@@ -36,6 +36,10 @@ private:
 
     std::vector<std::list<Patch> > activeSounds;
     std::vector<Patch> defaultPatches;
+
+    float *delayBuffer;
+    unsigned int delayBufferSize;
+    unsigned int delayBufferIndex;
 };
 
 #endif // MANAGER_H
