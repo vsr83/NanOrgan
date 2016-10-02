@@ -4,6 +4,7 @@
 class ADSREnvelope
 {
 public:
+    ADSREnvelope();
     ADSREnvelope(float _attackTime,
                  float _decayTime,
                  float _releaseTime,

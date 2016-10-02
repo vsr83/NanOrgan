@@ -1,5 +1,19 @@
 #include "ADSREnvelope.h"
 
+ADSREnvelope::ADSREnvelope() {
+    attackTime       = 0.02;
+    decayTime        = 0.02;
+    releaseTime      = 0.05;
+    peakAmplitude    = 1.0;
+    sustainAmplitude = 0.3;
+
+    triggerTime = 0.0;
+    releaseTime = 0.0;
+    amplitudeAtRelease = 0.0;
+
+    state = STATE_OFF;
+}
+
 ADSREnvelope::ADSREnvelope(float _attackTime,
                            float _decayTime,
                            float _releaseTime,
@@ -14,6 +28,8 @@ ADSREnvelope::ADSREnvelope(float _attackTime,
     triggerTime = 0.0;
     releaseTime = 0.0;
     amplitudeAtRelease = 0.0;
+
+    state = STATE_OFF;
 }
 
 void
