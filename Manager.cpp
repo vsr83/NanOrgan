@@ -9,7 +9,7 @@
 #include <iostream>
 #include <math.h>
 
-Manager::Manager() {
+Manager::Manager(unsigned int port) {
     for (unsigned int channel = 0; channel < 16; channel++) {
         std::list<Patch> patchlist;
         Patch patch;
@@ -61,7 +61,7 @@ Manager::Manager() {
     std::cout << "Initialization of RtMIDI" << std::endl;
     MIDIInterface = new RtMIDIInterface();
 
-    MIDIInterface->openPort(0);
+    MIDIInterface->openPort(port);
     MIDIInterface->setNoteOnCallback(&noteOnCallback, this);
     MIDIInterface->setNoteOffCallback(&noteOffCallback, this);
 }
@@ -108,7 +108,6 @@ Manager::generateCallback(double t, double dt, unsigned int numSamples, float *o
 
     for (unsigned int sample = 0; sample < numSamples; sample++)
     {
- //       std::cout << manager->delayBufferIndex << std::endl;
         manager->delayBuffer[manager->delayBufferIndex] = outputTmp[sample];
         manager->delayBufferIndex = (manager->delayBufferIndex + 1) % manager->delayBufferSize;
     }
@@ -119,8 +118,7 @@ Manager::generateCallback(double t, double dt, unsigned int numSamples, float *o
 
         for (unsigned int delayfac = 1; delayfac < 12; delayfac++) {
             unsigned int delayIndex = (manager->delayBufferIndex - numSamples + sample - delayfac*4000 + manager->delayBufferSize) % manager->delayBufferSize;
-            output[sample] += powf(0.7, delayfac)*manager->delayBuffer[delayIndex];
-            //std::cout << delayIndex << " " << manager->delayBuffer[delayIndex]<< std::endl;
+            output[sample] += powf(0.5, delayfac)*manager->delayBuffer[delayIndex];
         }
     }
 
@@ -135,13 +133,14 @@ Manager::noteOnCallback(unsigned char channel, unsigned char note, unsigned char
     patch.trigger(note, vel, manager->getCurrentTime());
     manager->activeSounds[channel].push_back(patch);
 
-   // std::cout << manager->activeSounds[channel].size() << std::endl;
-    std::cout << "NOTEON " << (int)channel << " " << (int)note << std::endl;
+    std::cout << "NOTEON ch=" << (int)channel << " note=" << (int)note << std::endl;
 }
 
 void
 Manager::noteOffCallback(unsigned char channel, unsigned char note, void *userData) {
     Manager *manager = (Manager*) userData;
+
+    std::cout << "NOTEOFF ch=" << (int)channel << " note=" << (int)note << std::endl;
 
     for (std::list<Patch>::iterator it = manager->activeSounds[channel].begin();
          it != manager->activeSounds[channel].end(); it++) {

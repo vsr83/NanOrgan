@@ -11,7 +11,7 @@
 class Manager
 {
 public:
-    Manager();
+    Manager(unsigned int port = 0);
     ~Manager();
 
     double getCurrentTime();
