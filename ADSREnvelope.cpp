@@ -1,5 +1,6 @@
 #include "ADSREnvelope.h"
 #include <iostream>
+#include <math.h>
 
 ADSREnvelope::ADSREnvelope() {
     attackTime       = 0.03;
@@ -62,6 +63,7 @@ ADSREnvelope::eval(double t) {
     {
         double stateTime = t - triggerTime;
         if (stateTime <= attackTime) {
+            //return peakAmplitude * exp((stateTime - attackTime) * 2.0 / attackTime);
             return peakAmplitude * stateTime / attackTime;
         } else {
             state = STATE_DECAY;
@@ -74,7 +76,9 @@ ADSREnvelope::eval(double t) {
         double stateTime = t - triggerTime - attackTime;
         if (stateTime < decayTime)
         {
-            return peakAmplitude - (peakAmplitude - sustainAmplitude) * stateTime/decayTime;
+            //return peakAmplitude - (peakAmplitude - sustainAmplitude) * stateTime/decayTime;
+            return sustainAmplitude + (peakAmplitude - sustainAmplitude)
+                      * exp(-stateTime * 4.0 / decayTime);
         } else {
             return sustainAmplitude;
         }

@@ -16,6 +16,7 @@ main(int argc, char **argv)
     }
     Manager *manager = new Manager(port);
 
+    std::cout << "Press Enter to quit." << std::endl;
     std::string foo;
     std::cin >> foo;
 

@@ -1,19 +1,15 @@
 #include "Patch.h"
 #include <math.h>
 #include <iostream>
+#include <assert.h>
 
 Patch::Patch() {
-    timbre.push_back(1.0);
-    timbre.push_back(0.6);
-    timbre.push_back(0.0);
-    timbre.push_back(0.9);
+    timbre = {1.0, 0.6, 0.0, 0.9};
+    waveType = {WAVE_SIN, WAVE_SIN, WAVE_SIN, WAVE_SIN};
+
     fmodAmpl = 0.0;
     fmodFreq = 0.0;
     fmodEnabled = false;
-
-    delayTime = 0.2;
-    delayCoeff = 0.2;
-    delayEnabled = false;
 }
 
 void
@@ -41,9 +37,37 @@ Patch::eval(double t) {
     float out = 0, outenv = 0;
     double fcoeff;
 
+    assert(waveType.size() == timbre.size());
+
     for (unsigned int indTimbre= 0; indTimbre < timbre.size(); indTimbre++) {
         fcoeff = 1.0 + (double) indTimbre;
-        out += 0.100*timbre[indTimbre]*(float)sin(2.0*M_PI*fcoeff*freq*t+(double)indTimbre);
+
+        float wave, angle;
+
+        if (fcoeff * freq > 21000.0) continue;
+
+        angle = fcoeff*freq*(t - env.triggerTime);
+
+        switch(waveType[indTimbre])
+        {
+        case WAVE_SIN:
+            wave = (float)sin(2.0*M_PI*angle);
+            break;
+        case WAVE_SQU:
+            if (fmodf(angle, 1.0) < 0.5) {
+                wave = 1.0;
+            } else {
+                wave = -1.0;
+            }
+            break;
+        case WAVE_TRI:
+            wave = 2.0*fabs(2.0*fmodf(angle, 1) - 1.0) - 1.0;
+            break;
+        case WAVE_SAW:
+            wave = 2.0*fmodf(angle, 1) - 1.0;
+            break;
+        }
+        out += 0.100*timbre[indTimbre]*wave;
         //std::cout << indTimbre << " " << fcoeff << std::endl;
 
     }

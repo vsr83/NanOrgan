@@ -4,11 +4,19 @@
 #include "ADSREnvelope.h"
 #include <vector>
 
+enum {
+    WAVE_SIN,
+    WAVE_TRI,
+    WAVE_SAW,
+    WAVE_SQU
+};
+
 class Patch
 {
 public:
     Patch();
     std::vector<float> timbre;
+    std::vector<unsigned int> waveType;
     ADSREnvelope env;
 
     float eval  (double t);
@@ -18,8 +26,6 @@ public:
 
     float fmodAmpl, fmodFreq;
     bool fmodEnabled;
-    double delayTime, delayCoeff;
-    bool delayEnabled;
 
     unsigned char note, vel;
     double freq, velf;
