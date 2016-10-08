@@ -8,6 +8,10 @@
 #include "RtMIDInterface.h"
 #include "Patch.h"
 
+#ifdef USE_PTHREAD
+#include <pthread.h>
+#endif
+
 class Manager
 {
 public:
@@ -40,6 +44,11 @@ private:
     float *delayBuffer;
     unsigned int delayBufferSize;
     unsigned int delayBufferIndex;
+
+#ifdef USE_PTHREAD
+    pthread_mutex_t mutex;
+#endif
+
 };
 
 #endif // MANAGER_H

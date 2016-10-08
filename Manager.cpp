@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <math.h>
+#include <assert.h>
 
 Manager::Manager(unsigned int port) {
     for (unsigned int channel = 0; channel < 16; channel++) {
@@ -78,6 +79,10 @@ Manager::Manager(unsigned int port) {
     for (unsigned int ind = 0; ind < delayBufferSize; ind++)
         delayBuffer[ind] = 0.0;
 
+#ifdef USE_PTHREAD
+    assert(pthread_mutex_init(&mutex, NULL) == 0);
+#endif
+
     std::cout << "Initialization of Audio Interface" << std::endl;
     audioInterface = new AudioInterface(44100, 64);
     audioInterface->setGenerateCallback(&Manager::generateCallback, this);
@@ -97,6 +102,9 @@ Manager::~Manager() {
     MIDIInterface = 0;
     audioInterface = 0;
 
+#ifdef USE_PTHREAD
+    pthread_mutex_destroy(&mutex);
+#endif
     delete [] delayBuffer;
     delayBuffer = 0;
 }
@@ -109,6 +117,10 @@ Manager::getCurrentTime() {
 void
 Manager::generateCallback(double t, double dt, unsigned int numSamples, float *output, void *userData) {
     Manager *manager = (Manager*) userData;
+
+#ifdef USE_PTHREAD
+    pthread_mutex_lock(&manager->mutex);
+#endif
 
     float *outputTmp = new float[numSamples];
     for (unsigned int sample = 0; sample < numSamples; sample++) {
@@ -148,22 +160,36 @@ Manager::generateCallback(double t, double dt, unsigned int numSamples, float *o
     }
 
     delete [] outputTmp;
+#ifdef USE_PTHREAD
+    pthread_mutex_unlock(&manager->mutex);
+#endif
 }
 
 void
 Manager::noteOnCallback(unsigned char channel, unsigned char note, unsigned char vel, void *userData) {
     Manager *manager = (Manager*) userData;
+
+#ifdef USE_PTHREAD
+    pthread_mutex_lock(&manager->mutex);
+#endif
+
     Patch patch;
     patch = manager->defaultPatches[channel];
     patch.trigger(note, vel, manager->getCurrentTime());
     manager->activeSounds[channel].push_back(patch);
 
     std::cout << "NOTEON ch=" << (int)channel << " note=" << (int)note << std::endl;
+#ifdef USE_PTHREAD
+    pthread_mutex_unlock(&manager->mutex);
+#endif
 }
 
 void
 Manager::noteOffCallback(unsigned char channel, unsigned char note, void *userData) {
     Manager *manager = (Manager*) userData;
+#ifdef USE_PTHREAD
+    pthread_mutex_lock(&manager->mutex);
+#endif
 
     std::cout << "NOTEOFF ch=" << (int)channel << " note=" << (int)note << std::endl;
 
@@ -172,4 +198,7 @@ Manager::noteOffCallback(unsigned char channel, unsigned char note, void *userDa
         if ((*it).note == note)
             (*it).release(manager->getCurrentTime());
     }
+#ifdef USE_PTHREAD
+    pthread_mutex_unlock(&manager->mutex);
+#endif
 }
