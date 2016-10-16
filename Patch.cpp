@@ -1,3 +1,21 @@
+/*  NanOrgan - Simple Organ Synthesizer
+ *
+ *  Copyright (C) 2016 Ville Räisänen <vsr at vsr.name>
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
 #include "Patch.h"
 #include <math.h>
 #include <iostream>
@@ -17,8 +35,10 @@ Patch::trigger(unsigned char _note, unsigned char _vel, double t) {
     env.trigger(t);
     note = _note;
     vel = _vel;
+
     freq = 8.175 * powf(2, (((float)note)/12));
-    velf = 0.5*((float)vel)/256.0;
+    velf = 2.0*((float)vel)/256.0;
+    std::cout << velf << std::endl;
 }
 
 void
@@ -34,7 +54,7 @@ Patch::isFinished() {
 float
 Patch::eval(double t) {
     float envval = env.eval(t);
-    float out = 0, outenv = 0;
+    float out = 0, outenv = 0, ampl;
     double fcoeff;
 
     assert(waveType.size() == timbre.size());
@@ -43,10 +63,20 @@ Patch::eval(double t) {
         fcoeff = 1.0 + (double) indTimbre;
 
         float wave, angle;
+        double modFreq;
+        double dt = t - env.triggerTime;
 
         if (fcoeff * freq > 21000.0) continue;
 
-        angle = fcoeff*freq*(t - env.triggerTime);
+        // Apply frequency modulation, if enabled.
+        if (fmodEnabled) {
+            modFreq = freq * (1.0 + envval * velf * velf * fmodAmpl * (float)sin(dt * freq * fmodFreq * 2.0 * M_PI));
+            ampl = velf * 5.0;
+        } else {
+            modFreq = freq;
+            ampl = 1.0;
+        }
+        angle = fcoeff * modFreq * dt;
 
         switch(waveType[indTimbre])
         {
@@ -67,7 +97,7 @@ Patch::eval(double t) {
             wave = 2.0*fmodf(angle, 1) - 1.0;
             break;
         }
-        out += 0.100*timbre[indTimbre]*wave;
+        out += ampl * timbre[indTimbre]*wave;
         //std::cout << indTimbre << " " << fcoeff << std::endl;
 
     }

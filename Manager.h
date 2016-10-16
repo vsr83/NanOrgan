@@ -12,6 +12,10 @@
 #include <pthread.h>
 #endif
 
+#ifdef FREEVERB
+#include "freeverb/revmodel.hpp"
+#endif
+
 class Manager
 {
 public:
@@ -28,7 +32,8 @@ private:
     static void generateCallback(double t,
                                  double dt,
                                  unsigned int numSamples,
-                                 float *output,
+                                 float *outputLeft,
+                                 float *outputRight,
                                  void *userData);
     static void noteOnCallback(unsigned char channel,
                                unsigned char note,
@@ -39,7 +44,7 @@ private:
                                 void *userData);
 
     std::vector<std::list<Patch> > activeSounds;
-    std::vector<Patch> defaultPatches;
+    std::vector<Patch> activePatches;
 
     float *delayBuffer;
     unsigned int delayBufferSize;
@@ -48,7 +53,9 @@ private:
 #ifdef USE_PTHREAD
     pthread_mutex_t mutex;
 #endif
-
+#ifdef FREEVERB
+    revmodel rm;
+#endif
 };
 
 #endif // MANAGER_H
