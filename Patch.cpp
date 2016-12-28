@@ -22,87 +22,98 @@
 #include <assert.h>
 
 Patch::Patch() {
-    timbre = {1.0, 0.6, 0.0, 0.9};
+    timbreAmplitudes = {1.0, 0.6, 0.0, 0.9};
     waveType = {WAVE_SIN, WAVE_SIN, WAVE_SIN, WAVE_SIN};
 
     fmodAmpl = 0.0;
     fmodFreq = 0.0;
     fmodEnabled = false;
+
+    frequency = 0.0;
+    amplitude = 0.0;
 }
 
 void
 Patch::trigger(unsigned char _note, unsigned char _vel, double t) {
-    env.trigger(t);
+    envelope.trigger(t);
     note = _note;
     vel = _vel;
 
-    freq = 8.175 * powf(2, (((float)note)/12));
-    velf = 2.0*((float)vel)/256.0;
-    std::cout << velf << std::endl;
+    // Compute the frequency and amplitude of the signal from the integer-valued
+    // MIDI data:
+    frequency = 8.175 * powf(2, (((float)note)/12));
+    amplitude = 1.0*((float)vel)/127.0;
 }
 
 void
 Patch::release(double t) {
-    env.release(t);
+    envelope.release(t);
 }
 
 bool
 Patch::isFinished() {
-    return env.isFinished();
+    return envelope.isFinished();
 }
 
 float
 Patch::eval(double t) {
-    float envval = env.eval(t);
-    float out = 0, outenv = 0, ampl;
-    double fcoeff;
+    float envval = envelope.eval(t);      // Evaluate the envelope value.
+    float out = 0;                        // Output before multiplication with the envelope.
+    float outWithEnv = 0;                 // Output after multiplication with the envelope.
+    double dt = t - envelope.triggerTime; // Time after trigger.
 
-    assert(waveType.size() == timbre.size());
+    assert(waveType.size() == timbreAmplitudes.size());
 
-    for (unsigned int indTimbre= 0; indTimbre < timbre.size(); indTimbre++) {
-        fcoeff = 1.0 + (double) indTimbre;
+    for (unsigned int indTimbre= 0; indTimbre < timbreAmplitudes.size(); indTimbre++) {
+        float wave;            // Synthesized waveform.
+        float timeNormalized;  // Normalized time used to determine the phase.
+        float amplitudeFinal;  // Amplitude after multiplication with velocity.
+        double frequencyFinal; // Frequency after possible frequency modulation.
 
-        float wave, angle;
-        double modFreq;
-        double dt = t - env.triggerTime;
+        // Ratio of the frequency to the patch frequency.
+        double fcoeff = 1.0 + (double) indTimbre;
 
-        if (fcoeff * freq > 21000.0) continue;
+        if (timbreCoeff.size() > indTimbre)
+        {
+            fcoeff = timbreCoeff[indTimbre];
+        }
+        // Try to avoid aliasing by synthesizing only signals under 21kHz. Note that
+        // this will only work for purely sinusoidal waveforms.
+        if (fcoeff * frequency > 21000.0) continue;
 
         // Apply frequency modulation, if enabled.
         if (fmodEnabled) {
-            modFreq = freq * (1.0 + envval * velf * velf * fmodAmpl * (float)sin(dt * freq * fmodFreq * 2.0 * M_PI));
-            ampl = velf * 5.0;
+            frequencyFinal = frequency * (1.0 + envval * amplitude *  fmodAmpl
+                                       * (float)sin(dt * frequency * fmodFreq * 2.0 * M_PI));
+            amplitudeFinal = amplitude * 1.0;
         } else {
-            modFreq = freq;
-            ampl = 1.0;
+            frequencyFinal = frequency;
+            amplitudeFinal = 0.5;
         }
-        angle = fcoeff * modFreq * dt;
+        // Normalize the time of the patch to be peridic with a period of 1s.
+        timeNormalized = fcoeff * frequencyFinal * dt;
 
         switch(waveType[indTimbre])
         {
         case WAVE_SIN:
-            wave = (float)sin(2.0*M_PI*angle);
+            wave = (float)sin(2.0 * M_PI * timeNormalized);
             break;
         case WAVE_SQU:
-            if (fmodf(angle, 1.0) < 0.5) {
+            if (fmodf(timeNormalized, 1.0) < 0.5) {
                 wave = 1.0;
             } else {
                 wave = -1.0;
             }
             break;
         case WAVE_TRI:
-            wave = 2.0*fabs(2.0*fmodf(angle, 1) - 1.0) - 1.0;
+            wave = 2.0 * fabs(2.0 * fmodf(timeNormalized, 1) - 1.0) - 1.0;
             break;
         case WAVE_SAW:
-            wave = 2.0*fmodf(angle, 1) - 1.0;
+            wave = 2.0 * fmodf(timeNormalized, 1) - 1.0;
             break;
         }
-        out += ampl * timbre[indTimbre]*wave;
-        //std::cout << indTimbre << " " << fcoeff << std::endl;
-
+        out += amplitudeFinal * timbreAmplitudes[indTimbre] * wave;
     }
-    outenv = out * envval;
-    //std::cout << t << " " << env.getState() << " " << envval << std::endl;
-    //std::cout <<t << " " << freq << " " << fcoeff << " " <<out << " " << envval << " " << outenv<< std::endl;
-    return outenv;
+    outWithEnv = out * envval;
+    return outWithEnv;
 }

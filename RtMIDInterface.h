@@ -28,6 +28,12 @@ typedef void (*noteOffCallback)(unsigned char channel,
                                 unsigned char note,
                                 void *userData);
 
+typedef void (*channelModeCallback)(unsigned char byte1,
+                                    unsigned char byte2,
+                                    unsigned char bank,
+                                    void *userData);
+
+
 class RtMIDIInterface
 {
 public:
@@ -38,6 +44,8 @@ public:
                            void *userData);
     void setNoteOffCallback(noteOffCallback callback,
                             void *userData);
+    void setChannelModeCallback(channelModeCallback callback,
+                                void *userData);
 
     void openPort(unsigned int port);
 private:
@@ -49,12 +57,15 @@ private:
                            void *userData);
     noteOnCallback  _noteOnCallback;
     noteOffCallback _noteOffCallback;
+    channelModeCallback _channelModeCallback;
 
     bool noteOnCallbackEnabled;
     bool noteOffCallbackEnabled;
+    bool channelModeCallbackEnabled;
 
     void *noteOnUserData;
     void *noteOffUserData;
+    void *channelModeUserData;
 };
 
 #endif // RTMIDIINTERFACE_H

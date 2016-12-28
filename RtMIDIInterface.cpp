@@ -23,6 +23,7 @@ RtMIDIInterface::RtMIDIInterface() {
 
     noteOffCallbackEnabled = false;
     noteOnCallbackEnabled = false;
+    channelModeCallbackEnabled = false;
     noteOnUserData = 0;
     noteOffUserData = 0;
 }
@@ -57,6 +58,15 @@ RtMIDIInterface::setNoteOffCallback(noteOffCallback callback,
 }
 
 void
+RtMIDIInterface::setChannelModeCallback(channelModeCallback callback,
+                                    void *userData) {
+    _channelModeCallback = callback;
+    channelModeCallbackEnabled = true;
+    channelModeUserData = userData;
+}
+
+
+void
 RtMIDIInterface::RtCallback(double deltaTime,
                             std::vector<unsigned char> *message,
                             void *userData) {
@@ -74,6 +84,13 @@ RtMIDIInterface::RtCallback(double deltaTime,
         unsigned char func = message->at(0),
                     data1= message->at(1),
                     data2= message->at(2);
+
+        if (func >= 176 && func <= 179) {
+            if (iface->channelModeCallbackEnabled) {
+                unsigned char bank = func-176;
+                (*iface->_channelModeCallback)(data1, data2, bank,  iface->channelModeUserData);
+            }
+        }
 
         if (func >= 128 && func <= 143) {
             unsigned char channel = func - 127;

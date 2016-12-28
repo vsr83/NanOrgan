@@ -31,25 +31,43 @@ enum {
     WAVE_SQU
 };
 
+// A Patch object is associated to each active sound and a MIDI channel.
+
 class Patch
 {
 public:
     Patch();
-    // The Fourier coefficients are assembled into the following vector.
-    std::vector<float> timbre;
-    std::vector<unsigned int> waveType;
-    ADSREnvelope env;
+    // The waveform is summed from a finite number of basic waveforms.
+    // The length of timbreAmplitudes determines the number of summed
+    // waveforms. The amplitudes, harmonic numbers and waveforms of the
+    // summed terms are respectively determined in the following three
+    // vectors.
+    std::vector<float> timbreAmplitudes;
+    std::vector<float> timbreCoeff;
+    std::vector<unsigned int> waveType;    
+
+    // The basic waveform is multiplied with an ADSR envelope.
+    ADSREnvelope envelope;
 
     float eval  (double t);
+
     void trigger(unsigned char note, unsigned char vel, double t);
     void release(double t);
     bool isFinished();
 
-    float fmodAmpl, fmodFreq;
+    // Parameters for frequency modulation.
+    float fmodAmpl;   // Amplitude of the sinusoidal signal used in FM.
+    float fmodFreq;   // Frequency ratio of the sinusoidal w.r.t. patch frequency.
     bool fmodEnabled;
 
-    unsigned char note, vel;
-    double freq, velf;
+    // Note and velocity in the MIDI Note On message.
+    unsigned char note;
+    unsigned char vel;
+
+    // The MIDI data is used to compute the frequency and basic amplitude
+    // of the waveform.
+    double frequency;
+    double amplitude;
 };
 
 #endif // PATCH_H
